@@ -1,82 +1,99 @@
-# app.py
 import streamlit as st
 import pandas as pd
 from logic import load_icrs_nomogram, process_eye_data, detect_form_fruste, generate_pdf_summary
+import base64
 
-st.set_page_config(layout="wide")
-st.title("Keratoconus Management Planning Tool")
+st.set_page_config(page_title="Keratoconus Management Planner", layout="wide")
+st.title("Keratoconus Management Planner")
 
-# Load nomogram
-df_nomogram = load_icrs_nomogram()
+st.markdown("### Enter Patient Data")
 
-# Shared age input
-age = st.number_input("Patient Age", min_value=5, max_value=100, value=18, step=1)
+col_age, _ = st.columns([1, 5])
+age = col_age.number_input("Patient Age", min_value=5, max_value=100, value=18)
 
-st.markdown("### Input Parameters")
+col1, col2 = st.columns(2)
 
-col_left, col_right = st.columns(2)
-
-with col_left:
-    st.subheader("Left Eye")
-    left_eye = {
-        'sphere': st.number_input("Sphere (Left)", value=0.0),
-        'cylinder': st.number_input("Cylinder (Left)", value=0.0),
-        'k1': st.number_input("K1 (Left)", value=46.0),
-        'k2': st.number_input("K2 (Left)", value=48.0),
-        'kmax': st.number_input("Kmax (Left)", value=48.0),
-        'pachy': st.number_input("Pachymetry (Left)", value=480),
-        'bcva': st.number_input("BCVA (Left)", value=0.5),
-        'cone_distribution': st.selectbox("Cone Distribution (Left)", [
-            "100 % cone on one side",
-            "80 % :20 % ",
-            "60 % :40 % ",
-            "50 % :50 % "
-        ]),
-        'age': age
-    }
-
-with col_right:
+with col1:
     st.subheader("Right Eye")
-    right_eye = {
-        'sphere': st.number_input("Sphere (Right)", value=0.0),
-        'cylinder': st.number_input("Cylinder (Right)", value=0.0),
-        'k1': st.number_input("K1 (Right)", value=46.0),
-        'k2': st.number_input("K2 (Right)", value=48.0),
-        'kmax': st.number_input("Kmax (Right)", value=48.0),
-        'pachy': st.number_input("Pachymetry (Right)", value=480),
-        'bcva': st.number_input("BCVA (Right)", value=0.5),
-        'cone_distribution': st.selectbox("Cone Distribution (Right)", [
-            "100 % cone on one side",
-            "80 % :20 % ",
-            "60 % :40 % ",
-            "50 % :50 % "
-        ]),
-        'age': age
-    }
+    sphere_r = st.number_input("Sphere (R)", value=0.0, key="sphere_r")
+    cylinder_r = st.number_input("Cylinder (R)", value=0.0, key="cylinder_r")
+    k1_r = st.number_input("K1 (R)", value=46.0, key="k1_r")
+    k2_r = st.number_input("K2 (R)", value=48.0, key="k2_r")
+    kmax_r = st.number_input("Kmax (R)", value=48.0, key="kmax_r")
+    pachy_r = st.number_input("Pachymetry (R)", value=480, key="pachy_r")
+    bcva_r = st.number_input("BCVA (R)", value=0.5, step=0.1, key="bcva_r")
+    cone_dist_r = st.selectbox("Cone Distribution vs Steep Axis (R)", [
+        "100 % cone on one side",
+        "80 % :20 % ",
+        "60 % :40 % ",
+        "50 % :50 % "
+    ], key="cone_r")
+
+with col2:
+    st.subheader("Left Eye")
+    sphere_l = st.number_input("Sphere (L)", value=0.0, key="sphere_l")
+    cylinder_l = st.number_input("Cylinder (L)", value=0.0, key="cylinder_l")
+    k1_l = st.number_input("K1 (L)", value=46.0, key="k1_l")
+    k2_l = st.number_input("K2 (L)", value=48.0, key="k2_l")
+    kmax_l = st.number_input("Kmax (L)", value=48.0, key="kmax_l")
+    pachy_l = st.number_input("Pachymetry (L)", value=480, key="pachy_l")
+    bcva_l = st.number_input("BCVA (L)", value=0.5, step=0.1, key="bcva_l")
+    cone_dist_l = st.selectbox("Cone Distribution vs Steep Axis (L)", [
+        "100 % cone on one side",
+        "80 % :20 % ",
+        "60 % :40 % ",
+        "50 % :50 % "
+    ], key="cone_l")
 
 if st.button("Generate Management Plan"):
-    left_plan = process_eye_data(left_eye, df_nomogram)
-    right_plan = process_eye_data(right_eye, df_nomogram)
-    fruste = detect_form_fruste(left_eye, right_eye)
+    nomogram_df = load_icrs_nomogram()
 
-    st.subheader("📋 Management Plan")
+    right_eye = {
+        'age': age,
+        'sphere': sphere_r,
+        'cylinder': cylinder_r,
+        'k1': k1_r,
+        'k2': k2_r,
+        'kmax': kmax_r,
+        'pachy': pachy_r,
+        'bcva': bcva_r,
+        'cone_distribution': cone_dist_r
+    }
 
-    cols = st.columns(2)
-    with cols[0]:
-        st.markdown("#### Right Eye")
+    left_eye = {
+        'age': age,
+        'sphere': sphere_l,
+        'cylinder': cylinder_l,
+        'k1': k1_l,
+        'k2': k2_l,
+        'kmax': kmax_l,
+        'pachy': pachy_l,
+        'bcva': bcva_l,
+        'cone_distribution': cone_dist_l
+    }
+
+    right_plan = process_eye_data(right_eye, nomogram_df)
+    left_plan = process_eye_data(left_eye, nomogram_df)
+    form_fruste = detect_form_fruste(right_eye, left_eye)
+
+    st.markdown("### Recommended Management Plan")
+
+    col_r, col_l = st.columns(2)
+    with col_r:
+        st.markdown("**Right Eye:**")
         for line in right_plan:
             st.write("-", line)
-    with cols[1]:
-        st.markdown("#### Left Eye")
+
+    with col_l:
+        st.markdown("**Left Eye:**")
         for line in left_plan:
             st.write("-", line)
 
-    if fruste:
-        st.markdown("---")
-        st.markdown("⚠️ **Form fruste keratoconus detected in one eye — high risk of progression. CXL advised if eligible.**")
+    if form_fruste:
+        st.warning("⚠️ Form fruste keratoconus detected in one eye. High risk of progression. CXL advised if eligible.")
 
-    # PDF export
-    pdf = generate_pdf_summary(left_plan, right_plan, fruste)
-    pdf.output("keratoconus_report.pdf")
-    with open("keratoconus_report.pdf", "rb") as f:
-        st.download_button("Download PDF Report", f, file_name="keratoconus_report.pdf")
+    pdf = generate_pdf_summary(left_plan, right_plan, form_fruste)
+    pdf_output = pdf.output(dest='S').encode('latin1')
+    b64 = base64.b64encode(pdf_output).decode()
+    href = f'<a href="data:application/pdf;base64,{b64}" download="keratoconus_report.pdf">📄 Download PDF Report</a>'
+    st.markdown(href, unsafe_allow_html=True)
