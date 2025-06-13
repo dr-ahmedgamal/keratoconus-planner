@@ -5,7 +5,7 @@ from fpdf import FPDF
 def load_icrs_nomogram():
     return pd.read_csv("icrs_nomograms.csv")
 
-def get_asymmetry_type(cone_distribution in relation to steep axis):
+def get_asymmetry_type(cone_distribution):
     mapping = {
         "100 % cone on one side": "Type 1",
         "80 % :20 % ": "Type 2",
@@ -16,7 +16,10 @@ def get_asymmetry_type(cone_distribution in relation to steep axis):
 
 def find_icrs_recommendation(sphere, cylinder, asymmetry_type, nomogram_df):
     if sphere < -10:
-        return "Sphere exceeds ICRS correction range – Recommend Phakic or Pseudophakic IOL"
+        if cylinder < -2:
+            return "ICRS 340/300 + IOL for residual error"
+        else:
+            return "Recommend Phakic or Pseudophakic IOL"
     elif -10 <= sphere < -8:
         return "ICRS 340/300"
     else:
@@ -49,13 +52,16 @@ def process_eye_data(eye_data, nomogram_df):
         plan.append("CXL indicated (age < 40)")
 
     # Add ICRS if sphere and pachy eligible
-    if pachy >= 350 and abs(sphere) <= 3:
+    if pachy >= 350 and abs(sphere) >= 1:
         icrs = find_icrs_recommendation(sphere, cylinder, asymmetry_type, nomogram_df)
-        if "340/300" in icrs:
+        if "340/300 + IOL" in icrs:
+            plan.append("ICRS recommendation: 340/300")
+            plan.append("Followed by: IOL for residual myopia")
+        elif "340/300" in icrs:
             plan.append("ICRS recommendation: 340/300")
             plan.append("Followed by: Consider IOL for residual myopia")
         elif "IOL" in icrs:
-            plan.append("Sphere exceeds ICRS range – Recommend Phakic or Pseudophakic IOL")
+            plan.append(icrs)
         elif "not suitable" in icrs.lower():
             plan.append("ICRS not suitable")
         else:
