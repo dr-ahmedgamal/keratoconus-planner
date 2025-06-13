@@ -87,30 +87,33 @@ def detect_form_fruste(eye1, eye2):
 def generate_pdf_summary(left_plan, right_plan, form_fruste_detected):
     pdf = FPDF()
     pdf.add_page()
+    pdf.set_auto_page_break(auto=True, margin=15)
     pdf.set_font("Helvetica", size=12)
 
     pdf.set_font(style="B")
-    pdf.cell(190, 10, txt="Keratoconus Management Report", ln=True, align="C")
+    pdf.cell(0, 10, txt="Keratoconus Management Report", ln=True, align="C")
     pdf.ln(10)
 
     pdf.set_font(style="B")
-    pdf.cell(190, 10, txt="Right Eye Plan:", ln=True)
+    pdf.cell(0, 10, txt="Right Eye Plan:", ln=True)
     pdf.set_font(style="")
     for line in right_plan:
-        pdf.multi_cell(0, 8, f"- {line}")
+        safe_line = str(line).replace("⚠️", "WARNING:")  # Emojis may break rendering
+        pdf.multi_cell(w=180, h=8, txt=f"- {safe_line}", align='L')
 
     pdf.ln(5)
     pdf.set_font(style="B")
-    pdf.cell(190, 10, txt="Left Eye Plan:", ln=True)
+    pdf.cell(0, 10, txt="Left Eye Plan:", ln=True)
     pdf.set_font(style="")
     for line in left_plan:
-        pdf.multi_cell(0, 8, f"- {line}")
+        safe_line = str(line).replace("⚠️", "WARNING:")
+        pdf.multi_cell(w=180, h=8, txt=f"- {safe_line}", align='L')
 
     if form_fruste_detected:
         pdf.ln(10)
         pdf.set_font(style="B")
         pdf.set_text_color(220, 50, 50)
-        pdf.multi_cell(0, 10, "⚠️ Form fruste keratoconus detected in one eye. High risk of progression. CXL advised if eligible.")
+        pdf.multi_cell(w=180, h=10, txt="WARNING: Form fruste keratoconus detected in one eye. High risk of progression. CXL advised if eligible.")
         pdf.set_text_color(0, 0, 0)
 
     return pdf
