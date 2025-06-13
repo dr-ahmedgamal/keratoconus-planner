@@ -92,8 +92,23 @@ if st.button("Generate Management Plan"):
     if form_fruste:
         st.warning("⚠️ Form fruste keratoconus detected in one eye. High risk of progression. CXL advised if eligible.")
 
-    pdf = generate_pdf_summary(left_plan, right_plan, form_fruste)
-    pdf_output = pdf.output(dest='S').encode('latin1')
+    # ✅ Generate the PDF
+pdf = generate_pdf_summary(left_plan, right_plan, form_fruste)
+
+# ✅ Convert to downloadable binary format with safety check
+pdf_string = pdf.output(dest='S')
+
+if isinstance(pdf_string, str):
+    pdf_output = pdf_string.encode('latin1')
+    st.download_button(
+        label="Download PDF Summary",
+        data=pdf_output,
+        file_name="keratoconus_plan.pdf",
+        mime="application/pdf"
+    )
+else:
+    st.error("❌ PDF generation failed. Please check the data or try again.")
+
     b64 = base64.b64encode(pdf_output).decode()
     href = f'<a href="data:application/pdf;base64,{b64}" download="keratoconus_report.pdf">📄 Download PDF Report</a>'
     st.markdown(href, unsafe_allow_html=True)
