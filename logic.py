@@ -2,139 +2,79 @@
 import pandas as pd
 
 def load_icrs_nomogram():
-    path = "icrs_nomograms.csv"  # ensure file name is correct and placed properly
-    try:
-        df = pd.read_csv(path)
-        df['Type'] = df['Type'].astype(str).str.strip()  # normalize for matching
-        return df
-    except Exception as e:
-        print(f"Failed to load nomogram: {e}")
-        return pd.DataFrame()
+    return pd.read_csv("icrs_nomograms.csv")
 
-def calculate_se(sphere, cylinder):
-    return sphere + (cylinder / 2)
-
-def calculate_kavg(k1, k2):
-    return (k1 + k2) / 2
-
-def determine_stage(kmax, pachy, bcva):
-    if kmax <= 47 and pachy > 500 and bcva >= 0.8:
-        return "Stage 1"
-    elif 47 < kmax <= 52 and pachy > 450:
-        return "Stage 2"
-    elif 52 < kmax <= 55 and pachy > 400:
-        return "Stage 3"
-    else:
-        return "Stage 4"
-
-def is_progressive(age, bcva, kmax):
-    return age < 30 or bcva < 0.6 or kmax > 53
-
-def is_subclinical(kmax, pachy, bcva):
-    return kmax < 48 and pachy > 500 and bcva >= 0.9
-
-def icrs_eligibility(stage, sphere, cylinder, pachy, kmax):
-    return (
-        stage in ["Stage 1", "Stage 2", "Stage 3"] and
-        -10 <= sphere <= -1 and
-        1 <= abs(cylinder) <= 8 and
-        350 <= pachy <= 500 and
-        kmax <= 65
-    )
-
-def map_cone_distribution_to_type(distribution):
+def get_asymmetry_type(cone_distribution):
     mapping = {
-        "100 cone on one side": "1",
-        "80:20": "2",
-        "60:40": "3",
-        "50:50": "4"
+        "100 cone on one side": "Type 1",
+        "80:20": "Type 2",
+        "60:40": "Type 3",
+        "50:50": "Type 4"
     }
-    return mapping.get(distribution, "")
+    return mapping.get(cone_distribution, "Type 1")
 
-def recommend_icrs(nomogram_df, cone_distribution, sphere, cylinder):
-    if nomogram_df.empty:
-        return "Nomogram data not loaded."
-
-    cone_type = map_cone_distribution_to_type(cone_distribution)
-    if not cone_type:
-        return "Invalid cone distribution type."
-
-    try:
-        abs_sphere = abs(int(sphere))
-        abs_cylinder = abs(int(cylinder))
-
-        match = nomogram_df[
-            (nomogram_df['Type'] == cone_type) &
-            (nomogram_df['Sphere'] == abs_sphere) &
-            (nomogram_df['Cylinder'] == abs_cylinder)
+def find_icrs_recommendation(sphere, cylinder, asymmetry_type, nomogram_df):
+    if sphere < -10:
+        return "Not recommended (sphere exceeds nomogram limits)"
+    elif -10 <= sphere < -8:
+        return "ICRS 340/300 + consider IOL for residual myopia"
+    else:
+        filtered = nomogram_df[
+            (nomogram_df['Type'] == asymmetry_type) &
+            (nomogram_df['Sphere'] == int(round(sphere))) &
+            (nomogram_df['Cylinder'] == int(round(abs(cylinder))))
         ]
-
-        if not match.empty:
-            val = match.iloc[0]['Segments']
-            return f"Recommended ICRS: {val}"
-        elif -10 <= sphere < -8:
-            return "Recommended ICRS: 340/300 (off-nomogram correction for high myopia)"
+        if not filtered.empty:
+            return filtered.iloc[0]['Recommendation']
         else:
-            return "No exact match in nomogram. Consider expert review."
-    except Exception as e:
-        return f"Error using nomogram: {e}"
+            return "No exact match found in nomogram"
 
-def process_eye_data(age, sphere, cylinder, k1, k2, kmax, pachy, bcva, cone_distribution, nomogram_df):
-    results = []
+def process_eye_data(eye_data, nomogram_df):
+    age = eye_data['age']
+    sphere = eye_data['sphere']
+    cylinder = eye_data['cylinder']
+    k1 = eye_data['k1']
+    k2 = eye_data['k2']
+    kmax = eye_data['kmax']
+    pachy = eye_data['pachy']
+    bcva = eye_data['bcva']
+    cone_dist = eye_data['cone_distribution']
 
-    se = calculate_se(sphere, cylinder)
-    kavg = calculate_kavg(k1, k2)
-    stage = determine_stage(kmax, pachy, bcva)
-    progressive = is_progressive(age, bcva, kmax)
-    subclinical = is_subclinical(kmax, pachy, bcva)
+    asymmetry_type = get_asymmetry_type(cone_dist)
+    plan = []
 
-    results.append(f"Stage: {stage}")
-    if progressive:
-        results.append("Signs of progression: YES")
-    else:
-        results.append("Signs of progression: NO")
+    # CXL default if age < 40
+    if age < 40:
+        plan.append("CXL indicated (age < 40)")
 
-    if subclinical:
-        if progressive:
-            results.append("Subclinical keratoconus with risk of progression → Recommend prophylactic CXL")
+    # Add ICRS if sphere and pachy eligible
+    if 350 <= pachy <= 500 and abs(sphere) >= 1:
+        icrs = find_icrs_recommendation(sphere, cylinder, asymmetry_type, nomogram_df)
+        if "IOL" in icrs:
+            plan.append("ICRS implantation recommended")
+            plan.append("Followed by: Phakic or pseudophakic IOL for residual myopia")
+        elif "not recommended" in icrs.lower():
+            plan.append("ICRS not suitable")
         else:
-            results.append("Subclinical keratoconus without progression → Observation or optional CXL")
-    else:
-        cxl_needed = age < 40 or progressive
+            plan.append(f"ICRS recommendation: {icrs}")
 
-        if stage == "Stage 1":
-            plan = "Consider: Glasses / RGP Lenses"
-            if icrs_eligibility(stage, sphere, cylinder, pachy, kmax):
-                plan += " / ICRS"
-            if cxl_needed:
-                plan += " + CXL"
-            results.append(plan)
+    # PRK if BCVA < 1.0 and within topographic range
+    if bcva < 1.0 and kmax < 55:
+        plan.append("PRK + CXL recommended (BCVA improvement expected)")
 
-        elif stage == "Stage 2":
-            plan = "Consider: "
-            if icrs_eligibility(stage, sphere, cylinder, pachy, kmax):
-                plan += "ICRS + CXL, "
-            plan += "PRK + CXL"
-            results.append(plan)
+    # Glasses or RGP lenses always an option
+    plan.append("Glasses or RGP lenses as initial management")
 
-        elif stage == "Stage 3":
-            plan = "Consider: "
-            if icrs_eligibility(stage, sphere, cylinder, pachy, kmax):
-                if abs(sphere) > 10:
-                    plan += "ICRS followed by IOL for residual correction"
-                else:
-                    plan += "ICRS + CXL"
-            else:
-                plan += "Phakic IOL"
-            results.append(plan)
+    return plan
 
-        elif stage == "Stage 4":
-            results.append("Consider: DALK / PKP, or ICL if optical zone is clear")
+def detect_form_fruste(eye1, eye2):
+    def is_frank_kc(eye):
+        return eye['kmax'] >= 50 or eye['pachy'] < 460
 
-    if icrs_eligibility(stage, sphere, cylinder, pachy, kmax):
-        icrs_plan = recommend_icrs(nomogram_df, cone_distribution, sphere, cylinder)
-        results.append(icrs_plan)
-    else:
-        results.append("Not a candidate for ICRS based on criteria")
+    def is_suspicious(eye):
+        return 47 <= eye['kmax'] < 50 or 460 <= eye['pachy'] < 500
 
-    return results
+    return (
+        (is_frank_kc(eye1) and is_suspicious(eye2)) or
+        (is_frank_kc(eye2) and is_suspicious(eye1))
+    )
