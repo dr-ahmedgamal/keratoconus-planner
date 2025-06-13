@@ -2,10 +2,13 @@
 import pandas as pd
 
 def load_icrs_nomogram():
-    path = "icrs_nomograms.csv"
+    path = "icrs_nomograms.csv"  # ensure file name is correct and placed properly
     try:
-        return pd.read_csv(path)
-    except:
+        df = pd.read_csv(path)
+        df['Type'] = df['Type'].astype(str).str.strip()  # normalize for matching
+        return df
+    except Exception as e:
+        print(f"Failed to load nomogram: {e}")
         return pd.DataFrame()
 
 def calculate_se(sphere, cylinder):
@@ -39,25 +42,44 @@ def icrs_eligibility(stage, sphere, cylinder, pachy, kmax):
         kmax <= 65
     )
 
-def recommend_icrs(nomogram_df, cone_type, sphere, cylinder):
+def map_cone_distribution_to_type(distribution):
+    mapping = {
+        "100 cone on one side": "1",
+        "80:20": "2",
+        "60:40": "3",
+        "50:50": "4"
+    }
+    return mapping.get(distribution, "")
+
+def recommend_icrs(nomogram_df, cone_distribution, sphere, cylinder):
     if nomogram_df.empty:
         return "Nomogram data not loaded."
 
+    cone_type = map_cone_distribution_to_type(cone_distribution)
+    if not cone_type:
+        return "Invalid cone distribution type."
+
     try:
+        abs_sphere = abs(int(sphere))
+        abs_cylinder = abs(int(cylinder))
+
         match = nomogram_df[
             (nomogram_df['Type'] == cone_type) &
-            (nomogram_df['Sphere'] == abs(int(sphere))) &
-            (nomogram_df['Cylinder'] == abs(int(cylinder)))
+            (nomogram_df['Sphere'] == abs_sphere) &
+            (nomogram_df['Cylinder'] == abs_cylinder)
         ]
+
         if not match.empty:
             val = match.iloc[0]['Segments']
             return f"Recommended ICRS: {val}"
+        elif -10 <= sphere < -8:
+            return "Recommended ICRS: 340/300 (off-nomogram correction for high myopia)"
         else:
             return "No exact match in nomogram. Consider expert review."
     except Exception as e:
         return f"Error using nomogram: {e}"
 
-def process_eye_data(age, sphere, cylinder, k1, k2, kmax, pachy, bcva, cone_type, nomogram_df):
+def process_eye_data(age, sphere, cylinder, k1, k2, kmax, pachy, bcva, cone_distribution, nomogram_df):
     results = []
 
     se = calculate_se(sphere, cylinder)
@@ -78,19 +100,39 @@ def process_eye_data(age, sphere, cylinder, k1, k2, kmax, pachy, bcva, cone_type
         else:
             results.append("Subclinical keratoconus without progression → Observation or optional CXL")
     else:
-        if age < 40:
-            results.append("Age < 40 → CXL recommended if progressive")
+        cxl_needed = age < 40 or progressive
+
         if stage == "Stage 1":
-            results.append("Consider: Glasses / RGP Lenses / ICRS ± CXL")
+            plan = "Consider: Glasses / RGP Lenses"
+            if icrs_eligibility(stage, sphere, cylinder, pachy, kmax):
+                plan += " / ICRS"
+            if cxl_needed:
+                plan += " + CXL"
+            results.append(plan)
+
         elif stage == "Stage 2":
-            results.append("Consider: ICRS ± CXL, PRK+CXL if stable")
+            plan = "Consider: "
+            if icrs_eligibility(stage, sphere, cylinder, pachy, kmax):
+                plan += "ICRS + CXL, "
+            plan += "PRK + CXL"
+            results.append(plan)
+
         elif stage == "Stage 3":
-            results.append("Consider: ICRS+CXL, Phakic IOL if stable, PRK+CXL rarely")
+            plan = "Consider: "
+            if icrs_eligibility(stage, sphere, cylinder, pachy, kmax):
+                if abs(sphere) > 10:
+                    plan += "ICRS followed by IOL for residual correction"
+                else:
+                    plan += "ICRS + CXL"
+            else:
+                plan += "Phakic IOL"
+            results.append(plan)
+
         elif stage == "Stage 4":
             results.append("Consider: DALK / PKP, or ICL if optical zone is clear")
 
     if icrs_eligibility(stage, sphere, cylinder, pachy, kmax):
-        icrs_plan = recommend_icrs(nomogram_df, cone_type, sphere, cylinder)
+        icrs_plan = recommend_icrs(nomogram_df, cone_distribution, sphere, cylinder)
         results.append(icrs_plan)
     else:
         results.append("Not a candidate for ICRS based on criteria")
