@@ -14,16 +14,16 @@ cols = st.columns(2)
 def eye_inputs(label_prefix, col):
     with col:
         st.subheader(f"{label_prefix} Eye")
-        age = st.number_input(f"{label_prefix} Age", min_value=10, max_value=80, value=25)
-        sphere = st.number_input(f"{label_prefix} Sphere (D)", value=-3.0, step=0.25)
-        cylinder = st.number_input(f"{label_prefix} Cylinder (D)", value=-2.0, step=0.25)
-        k1 = st.number_input(f"{label_prefix} K1 (D)", value=42.0, step=0.1)
-        k2 = st.number_input(f"{label_prefix} K2 (D)", value=47.0, step=0.1)
-        kmax = st.number_input(f"{label_prefix} Kmax (D)", value=49.0, step=0.1)
+        age = st.number_input(f"{label_prefix} Age", min_value=10, max_value=80, value=18)
+        sphere = st.number_input(f"{label_prefix} Sphere (D)", value=0.0, step=0.25)
+        cylinder = st.number_input(f"{label_prefix} Cylinder (D)", value=0.0, step=0.25)
+        k1 = st.number_input(f"{label_prefix} K1 (D)", value=46.0, step=0.1)
+        k2 = st.number_input(f"{label_prefix} K2 (D)", value=48.0, step=0.1)
+        kmax = st.number_input(f"{label_prefix} Kmax (D)", value=48.0, step=0.1)
         pachy = st.number_input(f"{label_prefix} Pachymetry (µm)", value=480)
-        bcva = st.number_input(f"{label_prefix} BCVA (0–1.0)", min_value=0.0, max_value=1.0, step=0.05, value=0.8)
+        bcva = st.number_input(f"{label_prefix} BCVA (0–1.0)", min_value=0.0, max_value=1.0, step=0.05, value=0.5)
         cone_distribution = st.selectbox(
-            f"{label_prefix} Cone Distribution Relative to Steep Meridian",
+            f"{label_prefix} Cone Distribution Relative to Steep Meridian (cone location is defined relative to the steep axis)",
             ["100 cone on one side", "80:20", "60:40", "50:50"]
         )
     return age, sphere, cylinder, k1, k2, kmax, pachy, bcva, cone_distribution
