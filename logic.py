@@ -47,11 +47,9 @@ def process_eye_data(eye_data, nomogram_df):
     asymmetry_type = get_asymmetry_type(cone_dist)
     plan = []
 
-    # CXL default if age < 40
     if age < 40:
         plan.append("CXL indicated (age < 40)")
 
-    # Add ICRS if sphere and pachy eligible
     if pachy >= 350 and abs(sphere) >= 1:
         icrs = find_icrs_recommendation(sphere, cylinder, asymmetry_type, nomogram_df)
         if "340/300 + IOL" in icrs:
@@ -67,11 +65,9 @@ def process_eye_data(eye_data, nomogram_df):
         else:
             plan.append(f"ICRS recommendation: {icrs}")
 
-    # PRK if BCVA < 1.0 and within topographic range
     if bcva <= 1.0 and kmax < 55:
         plan.append("PRK + CXL recommended (BCVA improvement expected)")
 
-    # Glasses or RGP lenses always an option
     plan.append("Glasses or RGP lenses as initial management")
 
     return plan
@@ -91,29 +87,30 @@ def detect_form_fruste(eye1, eye2):
 def generate_pdf_summary(left_plan, right_plan, form_fruste_detected):
     pdf = FPDF()
     pdf.add_page()
-    pdf.set_font("Arial", size=12)
+    pdf.set_font("Helvetica", size=12)
 
-    pdf.cell(200, 10, txt="Keratoconus Management Report", ln=True, align="C")
+    pdf.set_font(style="B")
+    pdf.cell(190, 10, txt="Keratoconus Management Report", ln=True, align="C")
     pdf.ln(10)
 
-    pdf.set_font("Arial", style="B", size=12)
-    pdf.cell(200, 10, txt="Left Eye Plan:", ln=True)
-    pdf.set_font("Arial", size=12)
-    for line in left_plan:
-        pdf.cell(200, 10, txt=f"- {line}", ln=True)
+    pdf.set_font(style="B")
+    pdf.cell(190, 10, txt="Right Eye Plan:", ln=True)
+    pdf.set_font(style="")
+    for line in right_plan:
+        pdf.multi_cell(0, 8, f"- {line}")
 
     pdf.ln(5)
-    pdf.set_font("Arial", style="B", size=12)
-    pdf.cell(200, 10, txt="Right Eye Plan:", ln=True)
-    pdf.set_font("Arial", size=12)
-    for line in right_plan:
-        pdf.cell(200, 10, txt=f"- {line}", ln=True)
+    pdf.set_font(style="B")
+    pdf.cell(190, 10, txt="Left Eye Plan:", ln=True)
+    pdf.set_font(style="")
+    for line in left_plan:
+        pdf.multi_cell(0, 8, f"- {line}")
 
     if form_fruste_detected:
         pdf.ln(10)
-        pdf.set_font("Arial", style="B", size=12)
+        pdf.set_font(style="B")
         pdf.set_text_color(220, 50, 50)
-        pdf.multi_cell(0, 10, txt="⚠️ Form fruste keratoconus detected in one eye. High risk of progression. CXL advised if eligible.")
+        pdf.multi_cell(0, 10, "⚠️ Form fruste keratoconus detected in one eye. High risk of progression. CXL advised if eligible.")
+        pdf.set_text_color(0, 0, 0)
 
-    pdf.set_text_color(0, 0, 0)
     return pdf
