@@ -2,7 +2,7 @@
 import pandas as pd
 
 def load_icrs_nomogram():
-    path = "ICRS complete nomogram.xlsx - Sheet1 (1).csv"
+    path = "icrs_nomograms.csv"
     try:
         return pd.read_csv(path)
     except:
