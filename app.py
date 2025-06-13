@@ -15,11 +15,11 @@ col1, col2 = st.columns(2)
 
 with col1:
     st.subheader("Right Eye")
-    sphere_r = st.number_input("Sphere (R)", value=0.0, key="sphere_r")
-    cylinder_r = st.number_input("Cylinder (R)", value=0.0, key="cylinder_r")
-    k1_r = st.number_input("K1 (R)", value=46.0, key="k1_r")
-    k2_r = st.number_input("K2 (R)", value=48.0, key="k2_r")
-    kmax_r = st.number_input("Kmax (R)", value=48.0, key="kmax_r")
+    sphere_r = st.number_input("Sphere (R)", value=0.0, key="sphere_r", step=0.25,)
+    cylinder_r = st.number_input("Cylinder (R)", value=0.0, key="cylinder_r", step=0.25,)
+    k1_r = st.number_input("K1 (R)", value=46.0, key="k1_r", step=0.1,)
+    k2_r = st.number_input("K2 (R)", value=48.0, key="k2_r", step=0.1,)
+    kmax_r = st.number_input("Kmax (R)", value=48.0, key="kmax_r", step=0.1,)
     pachy_r = st.number_input("Pachymetry (R)", value=480, key="pachy_r")
     bcva_r = st.number_input("BCVA (R)", value=0.5, step=0.1, key="bcva_r")
     cone_dist_r = st.selectbox("Cone Distribution vs Steep Axis (R)", [
@@ -31,11 +31,11 @@ with col1:
 
 with col2:
     st.subheader("Left Eye")
-    sphere_l = st.number_input("Sphere (L)", value=0.0, key="sphere_l")
-    cylinder_l = st.number_input("Cylinder (L)", value=0.0, key="cylinder_l")
-    k1_l = st.number_input("K1 (L)", value=46.0, key="k1_l")
-    k2_l = st.number_input("K2 (L)", value=48.0, key="k2_l")
-    kmax_l = st.number_input("Kmax (L)", value=48.0, key="kmax_l")
+    sphere_l = st.number_input("Sphere (L)", value=0.0, key="sphere_l", step=0.25,)
+    cylinder_l = st.number_input("Cylinder (L)", value=0.0, key="cylinder_l", step=0.25,)
+    k1_l = st.number_input("K1 (L)", value=46.0, key="k1_l", step=0.1,)
+    k2_l = st.number_input("K2 (L)", value=48.0, key="k2_l", step=0.1,)
+    kmax_l = st.number_input("Kmax (L)", value=48.0, key="kmax_l", step=0.1,)
     pachy_l = st.number_input("Pachymetry (L)", value=480, key="pachy_l")
     bcva_l = st.number_input("BCVA (L)", value=0.5, step=0.1, key="bcva_l")
     cone_dist_l = st.selectbox("Cone Distribution vs Steep Axis (L)", [
