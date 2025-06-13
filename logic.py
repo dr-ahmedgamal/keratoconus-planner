@@ -30,10 +30,10 @@ def is_progressive(age, bcva, kmax):
 def is_subclinical(kmax, pachy, bcva):
     return kmax < 48 and pachy > 500 and bcva >= 0.9
 
-def icrs_eligibility(stage, se, cylinder, pachy, kmax):
+def icrs_eligibility(stage, sphere, cylinder, pachy, kmax):
     return (
         stage in ["Stage 1", "Stage 2", "Stage 3"] and
-        -10 <= se <= -1 and
+        -10 <= sphere <= -1 and
         1 <= abs(cylinder) <= 8 and
         350 <= pachy <= 500 and
         kmax <= 65
@@ -89,7 +89,7 @@ def process_eye_data(age, sphere, cylinder, k1, k2, kmax, pachy, bcva, cone_type
         elif stage == "Stage 4":
             results.append("Consider: DALK / PKP, or ICL if optical zone is clear")
 
-    if icrs_eligibility(stage, se, cylinder, pachy, kmax):
+    if icrs_eligibility(stage, sphere, cylinder, pachy, kmax):
         icrs_plan = recommend_icrs(nomogram_df, cone_type, sphere, cylinder)
         results.append(icrs_plan)
     else:
