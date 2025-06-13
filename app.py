@@ -1,6 +1,8 @@
 # app.py
 import streamlit as st
-from logic import load_icrs_nomogram, process_eye_data
+from logic import load_icrs_nomogram, process_eye_data, detect_form_fruste
+from io import StringIO
+import base64
 
 st.set_page_config(page_title="Keratoconus Management Planner", layout="wide")
 st.title("Keratoconus Management Planning App")
@@ -26,10 +28,20 @@ def eye_inputs(label_prefix, col):
             f"{label_prefix} Cone Distribution Relative to Steep Meridian (cone location is defined relative to the steep axis)",
             ["100 cone on one side", "80:20", "60:40", "50:50"]
         )
-    return age, sphere, cylinder, k1, k2, kmax, pachy, bcva, cone_distribution
+    return {
+        'age': age,
+        'sphere': sphere,
+        'cylinder': cylinder,
+        'k1': k1,
+        'k2': k2,
+        'kmax': kmax,
+        'pachy': pachy,
+        'bcva': bcva,
+        'cone_distribution': cone_distribution
+    }
 
-left_eye_data = eye_inputs("Left", cols[0])
-right_eye_data = eye_inputs("Right", cols[1])
+left_eye = eye_inputs("Left", cols[0])
+right_eye = eye_inputs("Right", cols[1])
 
 if st.button("Generate Management Plan"):
     st.subheader("Management Plan Summary")
@@ -37,17 +49,39 @@ if st.button("Generate Management Plan"):
 
     with col1:
         st.markdown("#### Left Eye Plan")
-        left_results = process_eye_data(*left_eye_data, nomogram_df)
+        left_results = process_eye_data(left_eye, nomogram_df)
         for line in left_results:
             st.write("-", line)
 
     with col2:
         st.markdown("#### Right Eye Plan")
-        right_results = process_eye_data(*right_eye_data, nomogram_df)
+        right_results = process_eye_data(right_eye, nomogram_df)
         for line in right_results:
             st.write("-", line)
 
+    # Check for form fruste keratoconus
+    form_fruste = detect_form_fruste(left_eye, right_eye)
+    if form_fruste:
+        st.warning("⚠️ Form fruste keratoconus detected in one eye: Recommend careful monitoring and possible CXL.")
+
+    # Generate PDF-like text for download
+    summary = StringIO()
+    summary.write("Keratoconus Management Report\n\n")
+    summary.write("LEFT EYE:\n")
+    for line in left_results:
+        summary.write(f"- {line}\n")
+    summary.write("\nRIGHT EYE:\n")
+    for line in right_results:
+        summary.write(f"- {line}\n")
+    if form_fruste:
+        summary.write("\n⚠️ Form fruste keratoconus detected in one eye. High risk of progression. CXL advised if eligible.\n")
+
+    content = summary.getvalue()
+    b64 = base64.b64encode(content.encode()).decode()
+    href = f'<a href="data:file/txt;base64,{b64}" download="keratoconus_plan.txt">📄 Download Summary as Text File</a>'
+    st.markdown(href, unsafe_allow_html=True)
+
 st.markdown("""
 ---
-*This app uses detailed staging, risk assessment, and full ICRS nomograms to guide keratoconus treatment including CXL, ICRS, PRK, and IOL combinations.*
+*This app uses detailed staging, progression risk, and asymmetry-based ICRS nomograms to generate personalized keratoconus treatment plans including CXL, ICRS, PRK, and IOL strategies.*
 """)
