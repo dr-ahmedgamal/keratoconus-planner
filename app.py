@@ -1,119 +1,75 @@
-# logic.py
-import pandas as pd
-from fpdf import FPDF
 
-def load_icrs_nomogram():
-    return pd.read_csv("icrs_nomograms.csv")
+import streamlit as st
+from logic import load_icrs_nomogram, process_eye_data, detect_form_fruste, generate_pdf_summary
 
-def get_asymmetry_type(cone_distribution):
-    mapping = {
-        "100 % cone on one side": "Type 1",
-        "80 % :20 % ": "Type 2",
-        "60 % :40 % ": "Type 3",
-        "50 % :50 % ": "Type 4"
-    }
-    return mapping.get(cone_distribution, "Type 1")
+st.set_page_config(page_title="Keratoconus Management App", layout="wide")
 
-def find_icrs_recommendation(sphere, cylinder, asymmetry_type, nomogram_df):
-    if sphere < -10:
-        if cylinder < -2:
-            return "ICRS 340/300 + IOL for residual error"
-        else:
-            return "Recommend Phakic or Pseudophakic IOL"
-    elif -10 <= sphere < -8:
-        return "ICRS 340/300"
-    else:
-        filtered = nomogram_df[
-            (nomogram_df['Type'] == asymmetry_type) &
-            (nomogram_df['Sphere'] == int(round(sphere))) &
-            (nomogram_df['Cylinder'] == int(round(abs(cylinder))))
-        ]
-        if not filtered.empty:
-            return filtered.iloc[0]['Recommendation']
-        else:
-            return "No exact match found in nomogram"
+st.title("Keratoconus Management Planning Tool")
 
-def process_eye_data(eye_data, nomogram_df):
-    age = eye_data['age']
-    sphere = eye_data['sphere']
-    cylinder = eye_data['cylinder']
-    k1 = eye_data['k1']
-    k2 = eye_data['k2']
-    kmax = eye_data['kmax']
-    pachy = eye_data['pachy']
-    bcva = eye_data['bcva']
-    cone_dist = eye_data['cone_distribution']
+nomogram_df = load_icrs_nomogram()
 
-    asymmetry_type = get_asymmetry_type(cone_dist)
-    plan = []
+with st.form("kc_form"):
+    st.subheader("Enter Patient Data")
 
-    # CXL default if age < 40
-    if age < 40:
-        plan.append("CXL indicated (age < 40)")
+    col1, col2 = st.columns(2)
 
-    # Add ICRS if sphere and pachy eligible
-    if pachy >= 350 and abs(sphere) >= 1:
-        icrs = find_icrs_recommendation(sphere, cylinder, asymmetry_type, nomogram_df)
-        if "340/300 + IOL" in icrs:
-            plan.append("ICRS recommendation: 340/300")
-            plan.append("Followed by: IOL for residual myopia")
-        elif "340/300" in icrs:
-            plan.append("ICRS recommendation: 340/300")
-            plan.append("Followed by: Consider IOL for residual myopia")
-        elif "IOL" in icrs:
-            plan.append(icrs)
-        elif "not suitable" in icrs.lower():
-            plan.append("ICRS not suitable")
-        else:
-            plan.append(f"ICRS recommendation: {icrs}")
+    with col1:
+        st.markdown("### Left Eye")
+        left_eye = {
+            "age": st.number_input("Age", value=18, min_value=10, max_value=100, key="age_l"),
+            "sphere": st.number_input("Sphere (D)", value=0.0, key="sphere_l"),
+            "cylinder": st.number_input("Cylinder (D)", value=0.0, key="cyl_l"),
+            "k1": st.number_input("K1 (D)", value=46.0, key="k1_l"),
+            "k2": st.number_input("K2 (D)", value=48.0, key="k2_l"),
+            "kmax": st.number_input("Kmax (D)", value=48.0, key="kmax_l"),
+            "pachy": st.number_input("Pachymetry (µm)", value=480, key="pachy_l"),
+            "bcva": st.number_input("BCVA", value=0.5, min_value=0.0, max_value=1.2, step=0.05, key="bcva_l"),
+            "cone_distribution": st.selectbox("Cone position vs steep axis", 
+                ["100 % cone on one side", "80 % :20 % ", "60 % :40 % ", "50 % :50 % "], key="dist_l")
+        }
 
-    # PRK if BCVA < 1.0 and within topographic range
-    if bcva <= 1.0 and kmax < 55:
-        plan.append("PRK + CXL recommended (BCVA improvement expected)")
+    with col2:
+        st.markdown("### Right Eye")
+        right_eye = {
+            "age": st.number_input("Age ", value=18, min_value=10, max_value=100, key="age_r"),
+            "sphere": st.number_input("Sphere (D) ", value=0.0, key="sphere_r"),
+            "cylinder": st.number_input("Cylinder (D) ", value=0.0, key="cyl_r"),
+            "k1": st.number_input("K1 (D) ", value=46.0, key="k1_r"),
+            "k2": st.number_input("K2 (D) ", value=48.0, key="k2_r"),
+            "kmax": st.number_input("Kmax (D) ", value=48.0, key="kmax_r"),
+            "pachy": st.number_input("Pachymetry (µm) ", value=480, key="pachy_r"),
+            "bcva": st.number_input("BCVA ", value=0.5, min_value=0.0, max_value=1.2, step=0.05, key="bcva_r"),
+            "cone_distribution": st.selectbox("Cone position vs steep axis ", 
+                ["100 % cone on one side", "80 % :20 % ", "60 % :40 % ", "50 % :50 % "], key="dist_r")
+        }
 
-    # Glasses or RGP lenses always an option
-    plan.append("Glasses or RGP lenses as initial management")
+    submitted = st.form_submit_button("Analyze")
 
-    return plan
+if submitted:
+    st.subheader("🧠 Management Recommendations")
 
-def detect_form_fruste(eye1, eye2):
-    def is_frank_kc(eye):
-        return eye['kmax'] >= 50 or eye['pachy'] < 460
+    left_plan = process_eye_data(left_eye, nomogram_df)
+    right_plan = process_eye_data(right_eye, nomogram_df)
+    form_fruste_flag = detect_form_fruste(left_eye, right_eye)
 
-    def is_suspicious(eye):
-        return 47 <= eye['kmax'] < 50 or 460 <= eye['pachy'] < 500
+    col1, col2 = st.columns(2)
 
-    return (
-        (is_frank_kc(eye1) and is_suspicious(eye2)) or
-        (is_frank_kc(eye2) and is_suspicious(eye1))
-    )
+    with col1:
+        st.markdown("#### Left Eye Plan")
+        for item in left_plan:
+            st.write("🔹", item)
 
-def generate_pdf_summary(left_plan, right_plan, form_fruste_detected):
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", size=12)
+    with col2:
+        st.markdown("#### Right Eye Plan")
+        for item in right_plan:
+            st.write("🔹", item)
 
-    pdf.cell(200, 10, txt="Keratoconus Management Report", ln=True, align="C")
-    pdf.ln(10)
+    if form_fruste_flag:
+        st.markdown("### ⚠️ Form Fruste Keratoconus Detected")
+        st.warning("One eye shows subclinical keratoconus with risk of progression. CXL advised if eligible.")
 
-    pdf.set_font("Arial", style="B", size=12)
-    pdf.cell(200, 10, txt="Left Eye Plan:", ln=True)
-    pdf.set_font("Arial", size=12)
-    for line in left_plan:
-        pdf.cell(200, 10, txt=f"- {line}", ln=True)
-
-    pdf.ln(5)
-    pdf.set_font("Arial", style="B", size=12)
-    pdf.cell(200, 10, txt="Right Eye Plan:", ln=True)
-    pdf.set_font("Arial", size=12)
-    for line in right_plan:
-        pdf.cell(200, 10, txt=f"- {line}", ln=True)
-
-    if form_fruste_detected:
-        pdf.ln(10)
-        pdf.set_font("Arial", style="B", size=12)
-        pdf.set_text_color(220, 50, 50)
-        pdf.multi_cell(0, 10, txt="⚠️ Form fruste keratoconus detected in one eye. High risk of progression. CXL advised if eligible.")
-
-    pdf.set_text_color(0, 0, 0)
-    return pdf
+    pdf = generate_pdf_summary(left_plan, right_plan, form_fruste_flag)
+    pdf_path = "/mnt/data/keratoconus_plan.pdf"
+    pdf.output(pdf_path)
+    with open(pdf_path, "rb") as f:
+        st.download_button("📄 Download PDF Report", f, file_name="keratoconus_plan.pdf")
