@@ -15,9 +15,9 @@ def get_asymmetry_type(cone_distribution):
 
 def find_icrs_recommendation(sphere, cylinder, asymmetry_type, nomogram_df):
     if sphere < -10:
-        return "Not recommended (sphere exceeds nomogram limits)"
+        return "Sphere exceeds ICRS correction range – Recommend Phakic or Pseudophakic IOL"
     elif -10 <= sphere < -8:
-        return "ICRS 340/300 + consider IOL for residual myopia"
+        return "ICRS 340/300"
     else:
         filtered = nomogram_df[
             (nomogram_df['Type'] == asymmetry_type) &
@@ -50,10 +50,12 @@ def process_eye_data(eye_data, nomogram_df):
     # Add ICRS if sphere and pachy eligible
     if 350 <= pachy <= 500 and abs(sphere) >= 1:
         icrs = find_icrs_recommendation(sphere, cylinder, asymmetry_type, nomogram_df)
-        if "IOL" in icrs:
-            plan.append("ICRS implantation recommended")
-            plan.append("Followed by: Phakic or pseudophakic IOL for residual myopia")
-        elif "not recommended" in icrs.lower():
+        if "340/300" in icrs:
+            plan.append("ICRS recommendation: 340/300")
+            plan.append("Followed by: Consider IOL for residual myopia")
+        elif "IOL" in icrs:
+            plan.append("Sphere exceeds ICRS range – Recommend Phakic or Pseudophakic IOL")
+        elif "not suitable" in icrs.lower():
             plan.append("ICRS not suitable")
         else:
             plan.append(f"ICRS recommendation: {icrs}")
