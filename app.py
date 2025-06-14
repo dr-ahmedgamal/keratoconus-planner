@@ -23,39 +23,41 @@ cone_dist = st.selectbox("Cone Distribution vs Steep Axis", [
 ])
 scarring = st.checkbox("Corneal Scarring Present", value=False)
 
-# Submit button
-if st.button("Generate Management Plan"):
-    nomogram_df = load_icrs_nomogram()
+# Submit button centered and enlarged
+col1, col2, col3 = st.columns([1, 2, 1])
+with col2:
+    if st.button("🔍 Generate Management Plan", use_container_width=True):
+        nomogram_df = load_icrs_nomogram()
 
-    eye_data = {
-        'age': age,
-        'sphere': sphere,
-        'cylinder': cylinder,
-        'k1': k1,
-        'k2': k2,
-        'kmax': kmax,
-        'pachy': pachy,
-        'bcva': bcva,
-        'cone_distribution': cone_dist,
-        'scarring': scarring
-    }
+        eye_data = {
+            'age': age,
+            'sphere': sphere,
+            'cylinder': cylinder,
+            'k1': k1,
+            'k2': k2,
+            'kmax': kmax,
+            'pachy': pachy,
+            'bcva': bcva,
+            'cone_distribution': cone_dist,
+            'scarring': scarring
+        }
 
-    plan = process_eye_data(eye_data, nomogram_df)
+        plan = process_eye_data(eye_data, nomogram_df)
 
-    # Show output
-    st.markdown("### Recommended Management Plan")
-    for line in plan:
-        st.write("-", line)
+        # Show output
+        st.markdown("### Recommended Management Plan")
+        for line in plan:
+            st.write("-", line)
 
-    # PDF generation
-    pdf = generate_pdf_summary(plan, [])
-    try:
-        pdf_string = pdf.output(dest='S').encode('latin1')
-        st.download_button(
-            label="📄 Download PDF Summary",
-            data=pdf_string,
-            file_name="keratoconus_plan.pdf",
-            mime="application/pdf"
-        )
-    except Exception as e:
-        st.error("❌ PDF generation failed. Please check input values.")
+        # PDF generation
+        pdf = generate_pdf_summary(plan, [])
+        try:
+            pdf_string = pdf.output(dest='S').encode('latin1')
+            st.download_button(
+                label="📄 Download PDF Summary",
+                data=pdf_string,
+                file_name="keratoconus_plan.pdf",
+                mime="application/pdf"
+            )
+        except Exception as e:
+            st.error("❌ PDF generation failed. Please check input values.")
