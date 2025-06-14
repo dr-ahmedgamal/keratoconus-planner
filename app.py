@@ -1,7 +1,7 @@
 # app.py
 import streamlit as st
 import pandas as pd
-from logic import load_icrs_nomogram, process_eye_data, generate_pdf_summary
+from logic import load_icrs_nomogram, process_eye_data
 from fpdf import FPDF
 
 # Page setup
