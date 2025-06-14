@@ -137,8 +137,9 @@ def process_eye_data(eye_data, nomogram_df):
 
     return plan
 
-# --- PDF Generator ---
-def generate_pdf_summary(right_plan, left_plan):
+from fpdf import FPDF
+
+def generate_pdf_summary(right_plan=None, left_plan=None):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_auto_page_break(auto=True, margin=15)
@@ -148,19 +149,22 @@ def generate_pdf_summary(right_plan, left_plan):
     pdf.cell(0, 10, txt="Keratoconus Management Report", ln=True, align="C")
     pdf.ln(10)
 
-    pdf.set_font(style="B")
-    pdf.cell(0, 10, txt="Right Eye Plan:", ln=True)
-    pdf.set_font(style="")
-    for line in right_plan:
-        safe_line = str(line).replace("⚠️", "WARNING:")
-        pdf.multi_cell(w=180, h=8, txt=f"- {safe_line}", align='L')
+    if right_plan:
+        pdf.set_font(style="B")
+        pdf.cell(0, 10, txt="Right Eye Plan:", ln=True)
+        pdf.set_font(style="")
+        for line in right_plan:
+            safe_line = str(line).replace("⚠️", "WARNING:")
+            pdf.multi_cell(w=180, h=8, txt=f"- {safe_line}", align='L')
+        pdf.ln(5)
 
-    pdf.ln(5)
-    pdf.set_font(style="B")
-    pdf.cell(0, 10, txt="Left Eye Plan:", ln=True)
-    pdf.set_font(style="")
-    for line in left_plan:
-        safe_line = str(line).replace("⚠️", "WARNING:")
-        pdf.multi_cell(w=180, h=8, txt=f"- {safe_line}", align='L')
+    if left_plan:
+        pdf.set_font(style="B")
+        pdf.cell(0, 10, txt="Left Eye Plan:", ln=True)
+        pdf.set_font(style="")
+        for line in left_plan:
+            safe_line = str(line).replace("⚠️", "WARNING:")
+            pdf.multi_cell(w=180, h=8, txt=f"- {safe_line}", align='L')
 
     return pdf
+
