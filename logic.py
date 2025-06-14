@@ -70,9 +70,9 @@ def find_icrs_recommendation(sphere, cylinder, asymmetry_type, nomogram_df):
             return f"{filtered.iloc[0]['Recommendation']} + IOL for residual error"
         else:
             return "ICRS max (for -8 D) + IOL for residual error"
-    elif -10 < sphere <= -8 and -3 <= cylinder <= -1:
+    elif -10 < sphere < -8 and -3 <= cylinder <= -1:
         return "ICRS 340–355/300"
-    elif -8 < sphere <= 3:
+    elif -8 <= sphere <= 3:
         filtered = nomogram_df[
             (nomogram_df['Type'] == asymmetry_type) &
             (nomogram_df['Sphere'] == int(round(sphere))) &
