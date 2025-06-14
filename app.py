@@ -88,14 +88,14 @@ if st.button("Generate Management Plan"):
             st.write("-", line)
 
     # PDF generation
-    pdf = generate_pdf_summary(right_plan, left_plan)
     try:
-        pdf_string = pdf.output(dest='S').encode('latin1')
+        pdf = generate_pdf_summary(right_plan, left_plan)
+        pdf_output = pdf.output(dest='S').encode('latin1')
         st.download_button(
             label="📄 Download PDF Summary",
-            data=pdf_string,
+            data=pdf_output,
             file_name="keratoconus_plan.pdf",
             mime="application/pdf"
         )
     except Exception as e:
-        st.error("❌ PDF generation failed. Please check input values.")
+        st.error(f"PDF generation failed: {e}")
