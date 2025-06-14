@@ -28,10 +28,10 @@ def is_prk_eligible(sphere, cylinder, pachy, scarring):
 def is_icrs_eligible(sphere, cylinder, pachy, kmax, scarring):
     return (
         pachy >= 350 and
-        1 <= abs(cylinder) <= 10 and
+        1 <= abs(cylinder) <= 8 and
         kmax <= 65 and
         not scarring and
-        -8 <= sphere <= 3
+        -10 <= sphere <= 3
     )
 
 def is_cxl_indicated(age, prk_eligible, icrs_eligible, pachy):
@@ -138,8 +138,12 @@ def process_eye_data(eye_data, nomogram_df):
     return plan
 
 from fpdf import FPDF
+from io import BytesIO
 
 def generate_pdf_summary(right_plan=None, left_plan=None):
+    if not right_plan and not left_plan:
+        return None  # Return nothing if no plan provided
+
     pdf = FPDF()
     pdf.add_page()
     pdf.set_auto_page_break(auto=True, margin=15)
@@ -149,7 +153,7 @@ def generate_pdf_summary(right_plan=None, left_plan=None):
     pdf.cell(0, 10, txt="Keratoconus Management Report", ln=True, align="C")
     pdf.ln(10)
 
-    if right_plan:
+    if right_plan and isinstance(right_plan, list):
         pdf.set_font(style="B")
         pdf.cell(0, 10, txt="Right Eye Plan:", ln=True)
         pdf.set_font(style="")
@@ -158,7 +162,7 @@ def generate_pdf_summary(right_plan=None, left_plan=None):
             pdf.multi_cell(w=180, h=8, txt=f"- {safe_line}", align='L')
         pdf.ln(5)
 
-    if left_plan:
+    if left_plan and isinstance(left_plan, list):
         pdf.set_font(style="B")
         pdf.cell(0, 10, txt="Left Eye Plan:", ln=True)
         pdf.set_font(style="")
@@ -166,5 +170,7 @@ def generate_pdf_summary(right_plan=None, left_plan=None):
             safe_line = str(line).replace("⚠️", "WARNING:")
             pdf.multi_cell(w=180, h=8, txt=f"- {safe_line}", align='L')
 
-    return pdf
-
+    output = BytesIO()
+    pdf.output(output)
+    output.seek(0)
+    return output
