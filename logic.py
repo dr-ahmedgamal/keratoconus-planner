@@ -96,23 +96,26 @@ def generate_pdf_summary(right_plan, left_plan):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_auto_page_break(auto=True, margin=15)
-    pdf.set_font("Helvetica", size=12)
 
-    pdf.set_font(style="B")
+    # Title
+    pdf.set_font("Helvetica", style="B", size=14)
     pdf.cell(0, 10, txt="Keratoconus Management Report", ln=True, align="C")
     pdf.ln(10)
 
-    pdf.set_font(style="B")
+    # Right Eye Plan
+    pdf.set_font("Helvetica", style="B", size=12)
     pdf.cell(0, 10, txt="Right Eye Plan:", ln=True)
-    pdf.set_font(style="")
+    pdf.set_font("Helvetica", size=12)
     for line in right_plan:
         safe_line = str(line).replace("⚠️", "WARNING:")
         pdf.multi_cell(w=180, h=8, txt=f"- {safe_line}", align='L')
 
     pdf.ln(5)
-    pdf.set_font(style="B")
+
+    # Left Eye Plan
+    pdf.set_font("Helvetica", style="B", size=12)
     pdf.cell(0, 10, txt="Left Eye Plan:", ln=True)
-    pdf.set_font(style="")
+    pdf.set_font("Helvetica", size=12)
     for line in left_plan:
         safe_line = str(line).replace("⚠️", "WARNING:")
         pdf.multi_cell(w=180, h=8, txt=f"- {safe_line}", align='L')
