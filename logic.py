@@ -49,9 +49,8 @@ def process_eye_data(eye_data, nomogram_df):
     # Glasses or Contact Lenses (always offered)
     plan.append("Glasses or RGP contact lenses as initial management")
 
-    # PRK (only if SE < 4 and pachy >= 450)
-    se = sphere + (cylinder / 2)
-    prk_eligible = se < 4 and pachy >= 450
+    # PRK (only if Sphere + Cylinder < 4 and pachy >= 450)
+    prk_eligible = (sphere + cylinder) < 4 and pachy >= 450
     if prk_eligible:
         plan.append("PRK recommended")
         plan.append("CXL should follow PRK in same session")
