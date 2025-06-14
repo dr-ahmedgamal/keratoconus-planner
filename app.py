@@ -11,7 +11,6 @@ st.markdown("### Enter Patient Data")
 
 # All patient inputs vertically
 age = st.number_input("Patient Age", min_value=5, max_value=100, value=18)
-scarring = st.checkbox("Corneal Scarring Present", value=False)
 sphere = st.number_input("Sphere", value=0.0, step=0.25)
 cylinder = st.number_input("Cylinder", value=0.0, step=0.25)
 k1 = st.number_input("K1", value=46.0, step=0.1)
@@ -22,6 +21,7 @@ bcva = st.number_input("BCVA", value=0.5, step=0.1)
 cone_dist = st.selectbox("Cone Distribution vs Steep Axis", [
     "100 % cone on one side", "80 % :20 % ", "60 % :40 % ", "50 % :50 % "
 ])
+scarring = st.checkbox("Corneal Scarring Present", value=False)
 
 # Submit button
 if st.button("Generate Management Plan"):
