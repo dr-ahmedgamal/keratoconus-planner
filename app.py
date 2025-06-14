@@ -48,16 +48,3 @@ with col2:
         st.markdown("### Recommended Management Plan")
         for line in plan:
             st.write("-", line)
-
-        # PDF generation
-        pdf = generate_pdf_summary(right_plan=plan)
-        try:
-            pdf_string = pdf.output(dest='S').encode('latin1')
-            st.download_button(
-                label="📄 Download PDF Summary",
-                data=pdf_string,
-                file_name="keratoconus_plan.pdf",
-                mime="application/pdf"
-            )
-        except Exception as e:
-            st.error("❌ PDF generation failed. Please check input values.")
