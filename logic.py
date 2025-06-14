@@ -28,7 +28,7 @@ def is_prk_eligible(sphere, cylinder, pachy, scarring):
 def is_icrs_eligible(sphere, cylinder, pachy, kmax, scarring):
     return (
         pachy >= 350 and
-        1 <= abs(cylinder) <= 8 and
+        1 <= abs(cylinder) <= 10 and
         kmax <= 65 and
         not scarring and
         -8 <= sphere <= 3
