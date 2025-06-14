@@ -56,7 +56,7 @@ def process_eye_data(eye_data, nomogram_df):
         plan.append("CXL should follow PRK in same session")
 
     # ICRS (if sphere within range and pachy >= 350)
-    if pachy >= 350 and abs(sphere) <= 3:
+    if pachy >= 350 and -8 <= sphere <= 3:
         icrs = find_icrs_recommendation(sphere, cylinder, asymmetry_type, nomogram_df)
         if "340-355/300 + IOL" in icrs:
             plan.append("ICRS recommendation: 340-355/300")
@@ -76,23 +76,20 @@ def process_eye_data(eye_data, nomogram_df):
     if age < 40 or prk_eligible:
         plan.append("CXL recommended")
 
-    # phakic_IOL (if sphere < -10 and cylinder < 2)    
-     if age < 40 and
-    if abs(sphere) < -10:
+    # Phakic IOL (if sphere < -10 and cylinder < 2 and age < 40)
+    if age < 40 and sphere < -10:
         if abs(cylinder) <= 2:
             plan.append("Phakic IOL indicated (high spherical error)")
         else:
-            plan.append("Phakic ICRS + IOL to correct residual error")
+            plan.append("ICRS + Phakic IOL to correct residual error")
 
-    # pseudophakic_IOL (if sphere < -10 and cylinder < 2) 
-    if age >= 40  and
-    if abs(sphere) < -10:
+    # Pseudophakic IOL (if sphere < -10 and cylinder < 2 and age >= 40)
+    if age >= 40 and sphere < -10:
         if abs(cylinder) <= 2:
             plan.append("Pseudophakic IOL indicated (high spherical error)")
         else:
-            plan.append("Pseudophakic ICRS + IOL to correct residual error")
+            plan.append("ICRS + Pseudophakic IOL to correct residual error")
 
-    
     return plan
 
 def generate_pdf_summary(right_plan, left_plan):
