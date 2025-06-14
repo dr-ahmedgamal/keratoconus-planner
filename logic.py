@@ -15,10 +15,10 @@ def get_asymmetry_type(cone_distribution):
     return mapping.get(cone_distribution, "Type 1")
 
 def find_icrs_recommendation(sphere, cylinder, asymmetry_type, nomogram_df):
-    if sphere < -10:
-        return "ICRS 340/300 + IOL for residual error"
-    elif -10 <= sphere < -8:
-        return "ICRS 340/300"
+    if sphere <= -10:
+        return "ICRS 340-355/300 + IOL for residual error"
+    elif -10 < sphere < -8:
+        return "ICRS 340-355/300"
     elif -8 <= sphere <= 3:
         filtered = nomogram_df[
             (nomogram_df['Type'] == asymmetry_type) &
@@ -56,13 +56,13 @@ def process_eye_data(eye_data, nomogram_df):
         plan.append("CXL should follow PRK in same session")
 
     # ICRS (if sphere within range and pachy >= 350)
-    if pachy >= 350 and abs(sphere) >= 1:
+    if pachy >= 350 and abs(sphere) <= 3:
         icrs = find_icrs_recommendation(sphere, cylinder, asymmetry_type, nomogram_df)
-        if "340/300 + IOL" in icrs:
-            plan.append("ICRS recommendation: 340/300")
+        if "340-355/300 + IOL" in icrs:
+            plan.append("ICRS recommendation: 340-355/300")
             plan.append("Followed by: IOL for residual myopia")
-        elif "340/300" in icrs:
-            plan.append("ICRS recommendation: 340/300")
+        elif "340-355/300" in icrs:
+            plan.append("ICRS recommendation: 340-355/300")
         elif "IOL" in icrs:
             plan.append(icrs)
         elif "not suitable" in icrs.lower():
@@ -76,13 +76,23 @@ def process_eye_data(eye_data, nomogram_df):
     if age < 40 or prk_eligible:
         plan.append("CXL recommended")
 
-    # IOL (if sphere > 10 and cylinder < 2)
-    if abs(sphere) > 10:
+    # phakic_IOL (if sphere < -10 and cylinder < 2)    
+     if age < 40 and
+    if abs(sphere) < -10:
         if abs(cylinder) <= 2:
-            plan.append("Phakic/Pseudophakic IOL indicated (high spherical error)")
+            plan.append("Phakic IOL indicated (high spherical error)")
         else:
-            plan.append("Phakic/Pseudophakic IOL + ICRS to correct residual cylinder")
+            plan.append("Phakic ICRS + IOL to correct residual error")
 
+    # pseudophakic_IOL (if sphere < -10 and cylinder < 2) 
+    if age >= 40  and
+    if abs(sphere) < -10:
+        if abs(cylinder) <= 2:
+            plan.append("Pseudophakic IOL indicated (high spherical error)")
+        else:
+            plan.append("Pseudophakic ICRS + IOL to correct residual error")
+
+    
     return plan
 
 def generate_pdf_summary(right_plan, left_plan):
