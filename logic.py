@@ -15,28 +15,22 @@ def get_asymmetry_type(cone_distribution):
     return mapping.get(cone_distribution, "Type 1")
 
 def find_icrs_recommendation(sphere, cylinder, asymmetry_type, nomogram_df):
-    # Normalize inputs
-    cylinder = abs(cylinder)
-    rounded_sphere = int(round(sphere))
-    rounded_cylinder = int(round(cylinder))
-
-    if rounded_sphere < -10:
-        if rounded_cylinder > 2:
-            return "ICRS 340/300 + IOL for residual error"
-        else:
-            return "Recommend Phakic or Pseudophakic IOL"
-    elif -10 <= rounded_sphere < -8:
+    if sphere < -10:
+        return "ICRS 340/300 + IOL for residual error"
+    elif -10 <= sphere < -8:
         return "ICRS 340/300"
-    else:
+    elif -8 <= sphere <= 3:
         filtered = nomogram_df[
             (nomogram_df['Type'] == asymmetry_type) &
-            (nomogram_df['Sphere'] == rounded_sphere) &
-            (nomogram_df['Cylinder'] == rounded_cylinder)
+            (nomogram_df['Sphere'] == int(round(sphere))) &
+            (nomogram_df['Cylinder'] == int(round(abs(cylinder))))
         ]
         if not filtered.empty:
             return filtered.iloc[0]['Recommendation']
         else:
             return "No exact match found in nomogram"
+    else:
+        return "ICRS not suitable"
 
 def process_eye_data(eye_data, nomogram_df):
     age = eye_data['age']
@@ -52,9 +46,17 @@ def process_eye_data(eye_data, nomogram_df):
     asymmetry_type = get_asymmetry_type(cone_dist)
     plan = []
 
-    if age < 40:
-        plan.append("CXL indicated (age < 40)")
+    # Glasses or Contact Lenses (always offered)
+    plan.append("Glasses or RGP contact lenses as initial management")
 
+    # PRK (only if SE < 4 and pachy >= 450)
+    se = sphere + (cylinder / 2)
+    prk_eligible = se < 4 and pachy >= 450
+    if prk_eligible:
+        plan.append("PRK recommended")
+        plan.append("CXL should follow PRK in same session")
+
+    # ICRS (if sphere within range and pachy >= 350)
     if pachy >= 350 and abs(sphere) >= 1:
         icrs = find_icrs_recommendation(sphere, cylinder, asymmetry_type, nomogram_df)
         if "340/300 + IOL" in icrs:
@@ -62,48 +64,51 @@ def process_eye_data(eye_data, nomogram_df):
             plan.append("Followed by: IOL for residual myopia")
         elif "340/300" in icrs:
             plan.append("ICRS recommendation: 340/300")
-            plan.append("Followed by: Consider IOL for residual myopia")
         elif "IOL" in icrs:
             plan.append(icrs)
         elif "not suitable" in icrs.lower():
             plan.append("ICRS not suitable")
+        elif "No exact match" in icrs:
+            plan.append("ICRS: No exact match in nomogram")
         else:
             plan.append(f"ICRS recommendation: {icrs}")
 
-    if bcva <= 1.0 and kmax < 55:
-        plan.append("PRK + CXL recommended (BCVA improvement expected)")
+    # CXL (if age < 40 or PRK offered)
+    if age < 40 or prk_eligible:
+        plan.append("CXL recommended")
 
-    plan.append("Glasses or RGP lenses as initial management")
+    # IOL (if sphere > 10 and cylinder < 2)
+    if abs(sphere) > 10:
+        if abs(cylinder) <= 2:
+            plan.append("Phakic/Pseudophakic IOL indicated (high spherical error)")
+        else:
+            plan.append("Phakic/Pseudophakic IOL + ICRS to correct residual cylinder")
 
     return plan
 
-def generate_pdf_summary(left_plan, right_plan):
+def generate_pdf_summary(right_plan, left_plan):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.set_font("Helvetica", size=12)
 
-    # Title
-    pdf.set_font("Helvetica", style="B", size=14)
+    pdf.set_font(style="B")
     pdf.cell(0, 10, txt="Keratoconus Management Report", ln=True, align="C")
     pdf.ln(10)
 
-    # Right Eye Plan
-    pdf.set_font("Helvetica", style="B", size=12)
+    pdf.set_font(style="B")
     pdf.cell(0, 10, txt="Right Eye Plan:", ln=True)
-    pdf.set_font("Helvetica", size=12)
+    pdf.set_font(style="")
     for line in right_plan:
         safe_line = str(line).replace("⚠️", "WARNING:")
-        pdf.multi_cell(w=0, h=8, txt=f"- {safe_line}", align='L')
+        pdf.multi_cell(w=180, h=8, txt=f"- {safe_line}", align='L')
 
     pdf.ln(5)
-
-    # Left Eye Plan
-    pdf.set_font("Helvetica", style="B", size=12)
+    pdf.set_font(style="B")
     pdf.cell(0, 10, txt="Left Eye Plan:", ln=True)
-    pdf.set_font("Helvetica", size=12)
+    pdf.set_font(style="")
     for line in left_plan:
         safe_line = str(line).replace("⚠️", "WARNING:")
-        pdf.multi_cell(w=0, h=8, txt=f"- {safe_line}", align='L')
+        pdf.multi_cell(w=180, h=8, txt=f"- {safe_line}", align='L')
 
     return pdf
