@@ -50,7 +50,7 @@ with col2:
             st.write("-", line)
 
         # PDF generation
-        pdf = generate_pdf_summary(plan, [])
+        pdf = generate_pdf_summary(right_plan=plan)
         try:
             pdf_string = pdf.output(dest='S').encode('latin1')
             st.download_button(
