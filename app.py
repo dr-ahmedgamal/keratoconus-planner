@@ -9,13 +9,9 @@ st.set_page_config(page_title="Keratoconus Management Planner", layout="wide")
 st.title("Keratoconus Management Planner")
 st.markdown("### Enter Patient Data")
 
-# Age and scarring inputs
-col_age, col_scar = st.columns([2, 2])
-age = col_age.number_input("Patient Age", min_value=5, max_value=100, value=18)
-scarring = col_scar.checkbox("Corneal Scarring Present", value=False)
-
-# Eye data input
-st.markdown("### Eye Data")
+# All patient inputs vertically
+age = st.number_input("Patient Age", min_value=5, max_value=100, value=18)
+scarring = st.checkbox("Corneal Scarring Present", value=False)
 sphere = st.number_input("Sphere", value=0.0, step=0.25)
 cylinder = st.number_input("Cylinder", value=0.0, step=0.25)
 k1 = st.number_input("K1", value=46.0, step=0.1)
