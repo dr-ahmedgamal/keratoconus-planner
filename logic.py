@@ -64,31 +64,19 @@ def find_icrs_recommendation(sphere, cylinder, asymmetry_type, nomogram_df, age,
     if -10 <= sphere <= -8 and -3 <= cylinder <= -1:
         return "ICRS 340–355/300"
 
-    # Standard nomogram usage for sphere -8 to +3
-    elif -8 <= sphere <= 3:
+    # Try standard nomogram usage for sphere -8 to +3
+    if -10 <= sphere <= 3:
         filtered = nomogram_df[
             (nomogram_df['Type'] == asymmetry_type) &
-            (nomogram_df['Sphere'] == int(round(sphere))) &
-            (nomogram_df['Cylinder'] == int(round(abs(cylinder))))
+            (nomogram_df['Sphere'] == int(round(min(sphere, -8)))) &
+            (nomogram_df['Cylinder'] == int(round(min(abs(cylinder), 8))))
         ]
         if not filtered.empty:
-            return filtered.iloc[0]['Recommendation']
+            icrs_text = filtered.iloc[0]['Recommendation']
         else:
-            return "No exact match found in nomogram"
+            icrs_text = "Maximal ICRS (from -8/-8)"
 
-    # Outside ICRS nomogram range — use max config for -8/-8
-    elif sphere < -10 or sphere > 3:
-        max_icrs = nomogram_df[
-            (nomogram_df['Type'] == asymmetry_type) &
-            (nomogram_df['Sphere'] == -8) &
-            (nomogram_df['Cylinder'] == 8)
-        ]
-        icrs_text = (
-            f"{max_icrs.iloc[0]['Recommendation']} (maximal ICRS for -8/-8)" if not max_icrs.empty
-            else "Maximal ICRS (for -8/-8)"
-        )
-
-        # Estimate residual error
+        # Calculate residual error beyond -8/-8 correction
         residual_sphere = sphere + 8
         residual_cylinder = cylinder + 8
         residual_total = residual_sphere + residual_cylinder
@@ -109,8 +97,40 @@ def find_icrs_recommendation(sphere, cylinder, asymmetry_type, nomogram_df, age,
         else:
             return f"{icrs_text} + assess options for residual correction"
 
-    else:
-        return "ICRS not suitable"
+    # Sphere is out of range entirely → use max config and handle residual
+    if sphere < -10 or sphere > 3:
+        max_icrs = nomogram_df[
+            (nomogram_df['Type'] == asymmetry_type) &
+            (nomogram_df['Sphere'] == -8) &
+            (nomogram_df['Cylinder'] == 8)
+        ]
+        icrs_text = (
+            f"{max_icrs.iloc[0]['Recommendation']} (maximal ICRS for -8/-8)" if not max_icrs.empty
+            else "Maximal ICRS (for -8/-8)"
+        )
+
+        residual_sphere = sphere + 8
+        residual_cylinder = cylinder + 8
+        residual_total = residual_sphere + residual_cylinder
+
+        residual_plan = []
+        if -4 <= residual_total <= -1 and pachy >= 450 and not scarring:
+            residual_plan.append("PRK for residual")
+        elif residual_total < -10:
+            if age < 40:
+                residual_plan.append("Phakic IOL for residual")
+            else:
+                residual_plan.append("Pseudophakic IOL for residual")
+        elif -10 <= residual_total < -4 and pachy >= 450 and not scarring:
+            residual_plan.append("Consider PRK for partial residual")
+
+        if residual_plan:
+            return f"{icrs_text} + {' and '.join(residual_plan)}"
+        else:
+            return f"{icrs_text} + assess options for residual correction"
+
+    return "ICRS not suitable"
+
 
 
 
