@@ -111,6 +111,9 @@ def find_icrs_recommendation(sphere, cylinder, asymmetry_type, nomogram_df, age,
 
     else:
         return "ICRS not suitable"
+
+
+
 # --- Management Plan Generator ---
 def process_eye_data(eye_data, nomogram_df):
     age = eye_data['age']
