@@ -62,76 +62,44 @@ def get_asymmetry_type(cone_distribution):
 def find_icrs_recommendation(sphere, cylinder, asymmetry_type, nomogram_df, age, pachy, scarring):
     # Special case: Sphere -8 to -10 and Cylinder -1 to -3 → 340–355/300
     if -10 <= sphere <= -8 and -3 <= cylinder <= -1:
-        return "ICRS 340–355/300"
+        return "ICRS 340–355/300 (special case: -8 to -10 sphere, -1 to -3 cylinder)"
 
-    # Try standard nomogram usage for sphere -8 to +3
-    if -10 <= sphere <= 3:
-        filtered = nomogram_df[
-            (nomogram_df['Type'] == asymmetry_type) &
-            (nomogram_df['Sphere'] == int(round(min(sphere, -8)))) &
-            (nomogram_df['Cylinder'] == int(round(min(abs(cylinder), 8))))
-        ]
-        if not filtered.empty:
-            icrs_text = filtered.iloc[0]['Recommendation']
+    # Limit correction to nomogram boundaries
+    corrected_sphere = max(sphere, -8)  # Most negative value to correct is -8
+    corrected_cylinder = min(abs(cylinder), 8)  # Max cylinder correction is 8 D
+
+    # Try to find the ICRS recommendation for this corrected combination
+    filtered = nomogram_df[
+        (nomogram_df['Type'] == asymmetry_type) &
+        (nomogram_df['Sphere'] == int(round(corrected_sphere))) &
+        (nomogram_df['Cylinder'] == int(round(corrected_cylinder)))
+    ]
+
+    if not filtered.empty:
+        icrs_text = filtered.iloc[0]['Recommendation']
+    else:
+        icrs_text = "ICRS configuration not found in nomogram (expected max for -8/-8)"
+
+    # Compute the residual sphere after ICRS
+    residual_sphere = round(sphere - corrected_sphere, 2)
+
+    # Build residual management plan
+    residual_plan = []
+    if -4 <= residual_sphere <= -1 and pachy >= 450 and not scarring:
+        residual_plan.append(f"Residual sphere: {residual_sphere} D → PRK recommended")
+    elif residual_sphere < -4:
+        if age < 40:
+            residual_plan.append(f"Residual sphere: {residual_sphere} D → Phakic IOL recommended")
         else:
-            icrs_text = "Maximal ICRS (from -8/-8)"
+            residual_plan.append(f"Residual sphere: {residual_sphere} D → Pseudophakic IOL recommended")
+    elif residual_sphere >= 0:
+        residual_plan.append("No residual sphere")
 
-        # Calculate residual error beyond -8/-8 correction
-        residual_sphere = sphere + 8
-        residual_cylinder = cylinder + 8
-        residual_total = residual_sphere + residual_cylinder
-
-        residual_plan = []
-        if -4 <= residual_total <= -1 and pachy >= 450 and not scarring:
-            residual_plan.append("PRK for residual")
-        elif residual_total < -10:
-            if age < 40:
-                residual_plan.append("Phakic IOL for residual")
-            else:
-                residual_plan.append("Pseudophakic IOL for residual")
-        elif -10 <= residual_total < -4 and pachy >= 450 and not scarring:
-            residual_plan.append("Consider PRK for partial residual")
-
-        if residual_plan:
-            return f"{icrs_text} + {' and '.join(residual_plan)}"
-        else:
-            return f"{icrs_text} + assess options for residual correction"
-
-    # Sphere is out of range entirely → use max config and handle residual
-    if sphere < -10 or sphere > 3:
-        max_icrs = nomogram_df[
-            (nomogram_df['Type'] == asymmetry_type) &
-            (nomogram_df['Sphere'] == -8) &
-            (nomogram_df['Cylinder'] == 8)
-        ]
-        icrs_text = (
-            f"{max_icrs.iloc[0]['Recommendation']} (maximal ICRS for -8/-8)" if not max_icrs.empty
-            else "Maximal ICRS (for -8/-8)"
-        )
-
-        residual_sphere = sphere + 8
-        residual_cylinder = cylinder + 8
-        residual_total = residual_sphere + residual_cylinder
-
-        residual_plan = []
-        if -4 <= residual_total <= -1 and pachy >= 450 and not scarring:
-            residual_plan.append("PRK for residual")
-        elif residual_total < -10:
-            if age < 40:
-                residual_plan.append("Phakic IOL for residual")
-            else:
-                residual_plan.append("Pseudophakic IOL for residual")
-        elif -10 <= residual_total < -4 and pachy >= 450 and not scarring:
-            residual_plan.append("Consider PRK for partial residual")
-
-        if residual_plan:
-            return f"{icrs_text} + {' and '.join(residual_plan)}"
-        else:
-            return f"{icrs_text} + assess options for residual correction"
-
-    return "ICRS not suitable"
-
-
+    # Final assembly
+    if residual_plan:
+        return f"ICRS used: {icrs_text} → {'; '.join(residual_plan)}"
+    else:
+        return f"ICRS used: {icrs_text} → assess options for residual sphere correction"
 
 
 # --- Management Plan Generator ---
