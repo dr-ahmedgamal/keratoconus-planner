@@ -144,11 +144,11 @@ def process_eye_data(eye_data, nomogram_df):
     if prk_ok:
         plan.append("PRK eligible (must be combined with CXL if age < 40)")
 
-    # Step 4: ICRS
-icrs_ok = is_icrs_eligible(sphere, cylinder, pachy, kmax, scarring)
-if icrs_ok:
-    icrs = find_icrs_recommendation(sphere, cylinder, asymmetry_type, nomogram_df, age, pachy, scarring)
-    plan.append(f"ICRS recommendation: {icrs}")
+        # Step 4: ICRS
+    icrs_ok = is_icrs_eligible(sphere, cylinder, pachy, kmax, scarring)
+    if icrs_ok:
+        icrs = find_icrs_recommendation(sphere, cylinder, asymmetry_type, nomogram_df, age, pachy, scarring)
+        plan.append(f"ICRS recommendation: {icrs}")
 
     # Step 5: CXL
     if is_cxl_indicated(age, prk_ok, icrs_ok, pachy):
